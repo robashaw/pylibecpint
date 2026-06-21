@@ -1,0 +1,3 @@
+[submodule "libecpint"]
+	path = libecpint
+	url = https://github.com/robashaw/libecpint.git
