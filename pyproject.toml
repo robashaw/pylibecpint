@@ -1,0 +1,39 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pylibecpint"
+version = "0.1.0"
+description = "Python bindings for libecpint, a library for ECP integral evaluation"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Robert Shaw" },
+]
+keywords = ["quantum chemistry", "ECP", "integrals", "effective core potentials"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C++",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.scikit-build]
+wheel.packages = ["src/pylibecpint"]
+cmake.args = [
+    "-DLIBECPINT_MAX_L=5",
+    "-DLIBECPINT_MAX_UNROL=1",
+    "-DLIBECPINT_USE_PUGIXML=ON",
+    "-DLIBECPINT_BUILD_TESTS=OFF",
+    "-DLIBECPINT_BUILD_DOCS=OFF",
+    "-DBUILD_SHARED_LIBS=OFF",
+]
