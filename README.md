@@ -1,6 +1,10 @@
 # pylibecpint
 
+[![Documentation](https://readthedocs.org/projects/pylibecpint/badge/?version=latest)](https://pylibecpint.readthedocs.io)
+
 Python bindings for [libecpint](https://github.com/robashaw/libecpint), a C++ library for the efficient evaluation of integrals over effective core potentials (ECPs).
+
+**[Full documentation](https://pylibecpint.readthedocs.io)** — installation, configuration, working examples, and API reference.
 
 ## Installation
 
@@ -18,10 +22,10 @@ cd pylibecpint
 pip install .
 ```
 
-To build with a higher maximum angular momentum (default is 5):
+To build with a higher maximum angular momentum (default is 5) or max unrol (default is 1):
 
 ```bash
-CMAKE_ARGS="-DLIBECPINT_MAX_L=7" pip install .
+CMAKE_ARGS="-DLIBECPINT_MAX_L=7 -DLIBECPINT_MAX_UNROL=2" pip install .
 ```
 
 ## Quick start
