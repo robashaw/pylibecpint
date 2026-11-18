@@ -3,7 +3,9 @@
 import os
 
 import numpy as np
+import pytest
 
+import pylibecpint
 from pylibecpint import (
     ECP,
     ECPBasis,
@@ -11,15 +13,31 @@ from pylibecpint import (
     GaussianECP,
     GaussianShell,
     TwoIndex,
+    available_ecps,
     get_data_dir,
 )
 
 
 def test_get_data_dir():
     d = get_data_dir()
-    assert os.path.isdir(d)
-    xmls = [f for f in os.listdir(d) if f.endswith(".xml")]
-    assert len(xmls) > 0
+    raw = os.path.join(d, "raw")
+    assert os.path.isdir(raw)
+    ecps = [f for f in os.listdir(raw) if f.endswith(".ecp")]
+    assert len(ecps) > 0
+
+
+def test_available_ecps():
+    names = available_ecps()
+    assert names == sorted(names)
+    for name in ["ecp10mdf", "ecp28mdf", "ecp60mdf", "lanl2dz", "def2-ecp", "crenbl", "sbkjc"]:
+        assert name in names
+    assert len(names) >= 91
+
+
+def test_module_constants():
+    assert pylibecpint.MAX_L == 8
+    assert pylibecpint.__libecpint_version__.startswith("1.1")
+    assert pylibecpint.__version__.startswith("1.1")
 
 
 def test_gaussian_shell_from_list():
@@ -96,3 +114,27 @@ def test_tolerance_properties():
     assert integrator.tolerance == 1e-12
     integrator.tolerance = 1e-10
     assert integrator.tolerance == 1e-10
+
+
+def test_two_index_out_of_range():
+    t = TwoIndex(2, 2, 0.0)
+    with pytest.raises(IndexError):
+        t[2, 0]
+    with pytest.raises(IndexError):
+        t[0, -1] = 1.0
+
+
+def test_ecp_index_out_of_range():
+    ecp = ECP(np.zeros(3))
+    ecp.addPrimitive(2, 0, 1.0, 1.0)
+    with pytest.raises(IndexError):
+        ecp.getGaussian(1)
+    with pytest.raises(IndexError):
+        ECPBasis().getECP(0)
+
+
+def test_center_wrong_size():
+    with pytest.raises(ValueError):
+        GaussianShell(np.zeros(2), 0)
+    with pytest.raises(ValueError):
+        ECP(np.zeros(4))
