@@ -11,14 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -27,3 +27,25 @@ jobs:
 
       - name: Test
         run: pytest tests/ -v
+
+  wheel-contents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Build wheel
+        run: pip wheel . -w dist --no-deps
+
+      - name: Check the wheel holds only the package
+        run: |
+          unzip -Z1 dist/*.whl | tee contents.txt
+          if grep -v -E '^(pylibecpint/|pylibecpint-[^/]+\.dist-info/)' contents.txt; then
+            echo "Unexpected files in wheel" && exit 1
+          fi
+          test "$(grep -c '^pylibecpint/data/raw/.*\.ecp$' contents.txt)" -gt 0

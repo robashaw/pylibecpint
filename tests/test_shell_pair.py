@@ -58,3 +58,57 @@ def test_shell_pair_integrals():
     flat_result.extend(result.to_numpy().ravel())
 
     check_against_reference(np.array(flat_result), "test1.output")
+
+
+def _make_shell_b_d():
+    # As _make_shell_b, but a d shell (libecpint's deriv_test1 and hess_test1)
+    shell = GaussianShell(B, 2)
+    shell.addPrim(0.02, 1.1)
+    shell.addPrim(1.41, 0.9)
+    shell.addPrim(8.71, 0.4)
+    return shell
+
+
+def _flat_derivs(compute, pairs):
+    flat = []
+    for sa, sb in pairs:
+        for m in compute(sa, sb):
+            flat.extend(m.to_numpy().ravel())
+    return np.array(flat)
+
+
+def test_shell_pair_first_derivatives():
+    ecp = _make_ecp()
+    a, b = _make_shell_a(), _make_shell_b_d()
+    ecpint = ECPIntegral(2, 4, 1)
+    flat = _flat_derivs(
+        lambda sa, sb: ecpint.compute_shell_pair_derivative(ecp, sa, sb), [(a, a), (a, b), (b, b)]
+    )
+    check_against_reference(flat, "deriv_test1.output", thresh=1e-5, precision=1e-8)
+
+
+def test_shell_pair_second_derivatives():
+    ecp = _make_ecp()
+    a, b = _make_shell_a(), _make_shell_b_d()
+    ecpint = ECPIntegral(2, 4, 2)
+    flat = _flat_derivs(
+        lambda sa, sb: ecpint.compute_shell_pair_second_derivative(ecp, sa, sb),
+        [(a, a), (a, b), (b, b)],
+    )
+    check_against_reference(flat, "hess_test1.output", thresh=1e-3, precision=1e-8)
+
+
+def test_shell_pair_bfield_derivatives():
+    ecp = _make_ecp()
+    a, b = _make_shell_a(), _make_shell_b()
+    ecpint = ECPIntegral(3, 4, 1)
+    ab = ecpint.compute_shell_pair_derivative_Bfield(ecp, a, b)
+    ba = ecpint.compute_shell_pair_derivative_Bfield(ecp, b, a)
+    assert len(ab) == len(ba) == 3
+    for m_ab, m_ba in zip(ab, ba):
+        assert m_ab.shape == (3, 10)
+        np.testing.assert_allclose(m_ba.to_numpy(), -m_ab.to_numpy().T, rtol=0, atol=1e-12)
+    assert max(np.abs(m.to_numpy()).max() for m in ab) > 1e-6
+    # Both shells on the ECP: zero
+    for m in ecpint.compute_shell_pair_derivative_Bfield(ecp, a, a):
+        np.testing.assert_array_equal(m.to_numpy(), 0.0)

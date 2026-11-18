@@ -8,6 +8,11 @@ pylibecpint provides Python bindings for
 evaluation of integrals over effective core potentials (ECPs) directly from
 Python. All inputs and outputs use NumPy arrays.
 
+pylibecpint 1.1.0 bundles libecpint 1.1.0, which is available at runtime as
+``pylibecpint.__libecpint_version__``. See libecpint's
+`What's new in v1.1 <https://github.com/robashaw/libecpint#whats-new-in-v11>`_ for the
+changes in the underlying library.
+
 Installation
 ------------
 
@@ -21,7 +26,7 @@ From PyPI
 From source
 ^^^^^^^^^^^
 
-Building from source requires a C++ compiler and CMake >= 3.15.
+Building from source requires a C++17 compiler and CMake >= 3.15.
 
 .. code-block:: bash
 
@@ -32,57 +37,56 @@ Building from source requires a C++ compiler and CMake >= 3.15.
 Configuration
 -------------
 
-Maximum angular momentum
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Angular momentum
+^^^^^^^^^^^^^^^^
 
-The library is compiled with a maximum angular momentum (``LIBECPINT_MAX_L``,
-default 5, supporting up to h-type functions) and a maximum unrolling level
-(``LIBECPINT_MAX_UNROL``, default 1). If your calculation requires higher
-angular momentum, rebuild from source with:
+Angular momentum up to 8 (l functions) is always supported, both for the ECPs and for the
+orbital basis including the derivative order: integrals up to l functions, first derivatives
+up to k, and second derivatives up to i. The limit is available as ``pylibecpint.MAX_L``, and
+exceeding it raises :class:`ValueError`. No build options are needed for this.
+
+Build options
+^^^^^^^^^^^^^
+
+Two optional settings can be passed when building from source:
 
 .. code-block:: bash
 
-   CMAKE_ARGS="-DLIBECPINT_MAX_L=7 -DLIBECPINT_MAX_UNROL=2" pip install .
+   CMAKE_ARGS="-DLIBECPINT_MAX_UNROL=2 -DLIBECPINT_RADIAL_CACHE_MB=8" pip install .
 
-Higher values of ``MAX_L`` increase compile time and binary size. Higher values
-of ``MAX_UNROL`` (up to ``MAX_L``) replace loop-based integral evaluation with
-generated unrolled code for better performance, at the cost of additional
-compile time.
+``LIBECPINT_MAX_UNROL`` (default 1) is the angular momentum below which integrals are evaluated
+with generated, unrolled code instead of loops, at the cost of extra compile time.
+``LIBECPINT_RADIAL_CACHE_MB`` (default 4; one of 1, 2, 4, 8, 16, 32 or 64) is the size of the
+per-thread cache for radial factors.
 
 ECP library
 ^^^^^^^^^^^
 
-pylibecpint bundles the ECP definitions from libecpint as XML data files.
+pylibecpint bundles libecpint's library of 91 ECP families, as MOLPRO-format ``.ecp`` files.
 These are used by :meth:`~pylibecpint.ECPIntegrator.set_ecp_basis_from_library`
-and are resolved automatically — you do not need to specify a path.
+and are resolved automatically, so you do not need to specify a path.
 
-The available ECPs are:
+The library includes the Stuttgart/Cologne ECPs (e.g. ``ecp10mdf``, ``ecp28mwb``,
+``ecp60mdf``), the Karlsruhe ``def2-ecp`` and ``dhf-ecp``, ``lanl2dz``, ``crenbl``,
+``crenbs``, ``sbkjc`` and ``lcecp-*``. To list every name:
 
-.. list-table::
-   :widths: 25 75
-   :header-rows: 1
+.. code-block:: python
 
-   * - Name
-     - Atoms
-   * - ECP10MDF
-     - K -- Kr (Z = 19 -- 36)
-   * - ECP28MDF
-     - Rb -- Xe (Z = 37 -- 54)
-   * - ECP46MDF
-     - Cs, Ba (Z = 55, 56)
-   * - ECP60MDF
-     - Hf -- Rn (Z = 72 -- 86), Ac -- U (Z = 89 -- 92)
-   * - ECP78MDF
-     - Fr, Ra (Z = 87, 88)
-   * - LANL2DZ
-     - Na -- La (Z = 11 -- 57), Hf -- Bi (Z = 72 -- 83), U -- Pu (Z = 92 -- 94)
+   import pylibecpint
+   print(pylibecpint.available_ecps())
+
+The files are in the ``raw`` subdirectory of :func:`~pylibecpint.get_data_dir`. Your own ECPs in
+the same format (for example, a MOLPRO-format export from the
+`Basis Set Exchange <https://www.basissetexchange.org>`_) can be loaded with
+``share_dir`` pointing to a directory that contains ``raw/<name>.ecp``, or with
+:meth:`pylibecpint.ECPBasis.addECP_from_file`.
 
 Example: HBr ECP integrals
 ---------------------------
 
 This example computes ECP integrals for HBr using the AVDZ-PP basis set with
-a Stuttgart-Dresden 10-electron ECP on bromine. It is a direct port of
-``tests/lib/api_test1`` from the C++ library.
+a Stuttgart-Dresden 10-electron ECP on bromine. It is a port of the HBr test from
+libecpint v1.0, and is one of pylibecpint's tests.
 
 .. code-block:: python
 
@@ -100,8 +104,8 @@ a Stuttgart-Dresden 10-electron ECP on bromine. It is a direct port of
        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       # 5 H shells at (R, 0, 0)
-       R, 0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0,
+       # 5 H shells at (0, 0, R)
+       0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0, R, 0.0, 0.0, R,
    ])
 
    g_exps = np.array([
@@ -183,7 +187,7 @@ a Stuttgart-Dresden 10-electron ECP on bromine. It is a direct port of
 Running this produces::
 
    Integral matrix shape: (44, 44)
-   Trace: 132.810798
+   Trace: 92.205935
 
 Using the ECP library
 ^^^^^^^^^^^^^^^^^^^^^
@@ -204,26 +208,68 @@ the bundled library. For the same HBr system with ECP10MDF on bromine
    integrator.init()
    integrals = integrator.compute_integrals()
 
-The ``share_dir`` argument defaults to the bundled data directory, so there is
-no need to locate the XML files manually.
+The ``share_dir`` argument defaults to the bundled library, so there is no need
+to locate the files manually.
 
 Computing derivatives
 ^^^^^^^^^^^^^^^^^^^^^
 
 To compute first or second derivatives, pass the derivative order to
-:meth:`~pylibecpint.ECPIntegrator.init`:
+:meth:`~pylibecpint.ECPIntegrator.init`. Derivatives are with respect to the
+coordinates of each distinct atom, in the order in which the atoms first appear in
+the Gaussian basis.
+
+Usually only the contraction of the derivatives with a density matrix is needed,
+for example for a gradient or Hessian. :meth:`~pylibecpint.ECPIntegrator.compute_gradient`
+and :meth:`~pylibecpint.ECPIntegrator.compute_hessian` compute this directly,
+without ever storing the derivative matrices:
+
+.. code-block:: python
+
+   integrator.init(deriv=2)
+   density = ...  # (ncart, ncart), in the order of the integrals
+
+   gradient = integrator.compute_gradient(density)  # shape (3 * natoms,)
+   hessian = integrator.compute_hessian(density)    # shape (3 * natoms, 3 * natoms)
+
+   # gradient[3 * X + i] is the derivative with respect to coordinate i (x, y, z)
+   # of atom X, and hessian[3 * X + i, 3 * Y + j] likewise
+
+This is the recommended way to get derivatives for anything but small systems.
+The full derivative matrices take memory proportional to natoms * ncart\ :sup:`2`
+(first derivatives) and natoms\ :sup:`2` * ncart\ :sup:`2` (second derivatives),
+e.g. about 7 GB and 800 GB respectively for 77 atoms with 1900 basis functions.
+When you do need them:
 
 .. code-block:: python
 
    integrator.init(deriv=1)
-   integrals = integrator.compute_integrals()
    first_derivs = integrator.compute_first_derivs()
 
    # first_derivs is a list of 3*natoms arrays, in order:
    # [Ax, Ay, Az, Bx, By, Bz, ...]
-   # where atom order matches set_gaussian_basis.
    print(f"Number of derivative components: {len(first_derivs)}")
    print(f"Each component shape: {first_derivs[0].shape}")
+
+:meth:`~pylibecpint.ECPIntegrator.compute_second_derivs` returns the
+3*natoms*(3*natoms+1)/2 unique second derivatives; its documentation gives the order.
+
+Magnetic field derivatives
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For gauge-including atomic orbitals (London orbitals),
+:meth:`~pylibecpint.ECPIntegrator.compute_bfield_derivs` gives the derivatives of the
+ECP integrals with respect to a uniform magnetic field. It requires ``init(deriv=1)``
+or higher:
+
+.. code-block:: python
+
+   integrator.init(deriv=1)
+   bx, by, bz = integrator.compute_bfield_derivs()
+
+Each matrix is real and antisymmetric, and the derivative of the integrals is i/2
+times it. The conventions are described in the
+`libecpint documentation <https://libecpint.readthedocs.io>`_.
 
 Low-level API
 ^^^^^^^^^^^^^
@@ -264,6 +310,9 @@ Notes
 - All coordinates must be in **bohr** (atomic units).
 - Integrals are returned in **canonical Cartesian order**
   (e.g. for L=2: xx, xy, xz, yy, yz, zz).
+- Calling a method that the integrator was not initialised for (for example
+  :meth:`~pylibecpint.ECPIntegrator.compute_gradient` after ``init(deriv=0)``) raises
+  :class:`RuntimeError`, and inputs of the wrong size raise :class:`ValueError`.
 - ECP powers (``n``) follow the Stuttgart-Dresden convention where ``n=2``
   is the default (includes the r\ :sup:`2` Jacobian factor). Internally the
   library stores ``n - 2``.

@@ -1,6 +1,9 @@
 import numpy as np
 import numpy.typing as npt
 
+MAX_L: int
+__libecpint_version__: str
+
 class GaussianECP:
     n: int
     l: int
@@ -82,8 +85,6 @@ class ECPIntegral:
         maxLU: int,
         deriv: int = 0,
         thresh: float = 1e-15,
-        smallGrid: int = 256,
-        bigGrid: int = 1024,
     ) -> None: ...
     def compute_shell_pair(
         self,
@@ -99,14 +100,20 @@ class ECPIntegral:
     def compute_shell_pair_second_derivative(
         self, U: ECP, shellA: GaussianShell, shellB: GaussianShell
     ) -> list[TwoIndex]: ...
+    def compute_shell_pair_derivative_Bfield(
+        self, U: ECP, shellA: GaussianShell, shellB: GaussianShell
+    ) -> list[TwoIndex]: ...
 
 class ECPIntegrator:
     tolerance: float
-    shell_tolerance: float
-    ncart: int
-    natoms: int
-    maxLB: int
-    deriv: int
+    @property
+    def ncart(self) -> int: ...
+    @property
+    def natoms(self) -> int: ...
+    @property
+    def maxLB(self) -> int: ...
+    @property
+    def deriv(self) -> int: ...
     def __init__(self) -> None: ...
     def set_gaussian_basis(
         self,
@@ -143,12 +150,18 @@ class ECPIntegrator:
         deriv: int = 0,
         tol: float = 1e-12,
         radial_tol: float = 1e-15,
-        smallGrid: int = 256,
-        bigGrid: int = 1024,
     ) -> None: ...
     def compute_integrals(self) -> None: ...
     def compute_first_derivs(self) -> None: ...
     def compute_second_derivs(self) -> None: ...
+    def compute_bfield_derivs(self) -> None: ...
+    def compute_gradient(
+        self, density: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]: ...
+    def compute_hessian(
+        self, density: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]: ...
     def get_integrals(self) -> npt.NDArray[np.float64]: ...
     def get_first_derivs(self) -> list[npt.NDArray[np.float64]]: ...
     def get_second_derivs(self) -> list[npt.NDArray[np.float64]]: ...
+    def get_bfield_derivs(self) -> list[npt.NDArray[np.float64]]: ...

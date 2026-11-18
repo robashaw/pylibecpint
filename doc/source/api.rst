@@ -12,6 +12,24 @@ High-level API
 
 .. autofunction:: pylibecpint.get_data_dir
 
+.. autofunction:: pylibecpint.available_ecps
+
+Module constants
+----------------
+
+.. py:data:: pylibecpint.MAX_L
+
+   The maximum supported angular momentum (8): of the ECPs, and of the orbital basis
+   plus the derivative order.
+
+.. py:data:: pylibecpint.__version__
+
+   The version of pylibecpint.
+
+.. py:data:: pylibecpint.__libecpint_version__
+
+   The version of the bundled libecpint.
+
 Low-level API
 -------------
 
